@@ -25,8 +25,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "instrumentation.h"
+#include <math.h>
 
-#define min(a, b) ( a < b ? a : b) 
+uint8 min(uint8 a, uint8 b) {return ( a < b ? a : b);} 
 
 // The data structure
 //
@@ -424,8 +425,7 @@ void ImageBrighten(Image img, double factor) { ///
   for (size_t x = 0; x < img->width; x++){
     for (size_t y = 0; y < img->height; y++){
       uint8 colorValue = ImageGetPixel(img, x, y);
-      uint8 newColorValue = min((uint8) colorValue*factor, ImageMaxval(img));
-
+      uint8 newColorValue = min((uint8) round(colorValue*factor) , ImageMaxval(img));
       ImageSetPixel(img, x, y, newColorValue);
     }
   }
@@ -467,9 +467,9 @@ Image ImageRotate(Image img) { ///
     for (size_t y = 0; y < img->height; y++){
 
       uint8 pixel = ImageGetPixel(img, x, y);
-      size_t rotatedY = ImageWidth(img) - x - 1;
+
       size_t rotatedX = y;
-      //printf("( %zd, %zd ) passed to ( %zd, %zd )", x, y, rotatedX, rotatedY);
+      size_t rotatedY = -(x+1) + ImageWidth(img);
       ImageSetPixel(rotatedImage, rotatedX, rotatedY, pixel);
     }
   }
