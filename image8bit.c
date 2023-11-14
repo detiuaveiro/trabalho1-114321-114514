@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include "instrumentation.h"
 
+#define min(a, b) ( a < b ? a : b) 
+
 // The data structure
 //
 // An image is stored in a structure containing 3 fields:
@@ -319,7 +321,16 @@ int ImageMaxval(Image img) { ///
 /// *max is set to the maximum.
 void ImageStats(Image img, uint8 *min, uint8 *max) { ///
   assert(img != NULL);
-  // Insert your code here!
+  for (size_t x = 0; x < img->width; x++){
+    for (size_t y = 0; y < img->height; y++){
+      uint8 pixelValue = ImageGetPixel(img, x, y);
+
+      if (pixelValue > *max)
+        *max = pixelValue;
+      else if (pixelValue < *min)
+        *min = pixelValue;
+    }
+  }
 }
 
 /// Check if pixel position (x,y) is inside img.
@@ -331,9 +342,7 @@ int ImageValidPos(Image img, int x, int y) { ///
 /// Check if rectangular area (x,y,w,h) is completely inside img.
 int ImageValidRect(Image img, int x, int y, int w, int h) { ///
   assert(img != NULL);
-  // Insert your code here!
-  return -1;
-
+  return ImageValidPos(img, x, y) && ImageValidPos(img, w, h);
 }
 
 /// Pixel get & set operations
@@ -381,7 +390,12 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 /// resulting in a "photographic negative" effect.
 void ImageNegative(Image img) { ///
   assert(img != NULL);
-  // Insert your code here!
+  for (size_t x = 0; x < img->width; x++){
+    for (size_t y = 0; y < img->height; y++){
+      uint8 negative_value =  ImageMaxval(img) - ImageGetPixel(img, x, y);
+      ImageSetPixel(img, x, y, negative_value);
+    }
+  }
 }
 
 /// Apply threshold to image.
@@ -389,7 +403,16 @@ void ImageNegative(Image img) { ///
 /// all pixels with level>=thr to white (maxval).
 void ImageThreshold(Image img, uint8 thr) { ///
   assert(img != NULL);
-  // Insert your code here!
+  
+  for (size_t x = 0; x < img->width; x++){
+    for (size_t y = 0; y < img->height; y++){
+      uint8 colorValue = ImageGetPixel(img, x, y);
+      if (colorValue < thr )
+        ImageSetPixel(img, x, y, 0);
+      else
+        ImageSetPixel(img, x, y, ImageMaxval(img));
+    }
+  }
 }
 
 /// Brighten image by a factor.
@@ -398,8 +421,14 @@ void ImageThreshold(Image img, uint8 thr) { ///
 /// darken the image if factor<1.0.
 void ImageBrighten(Image img, double factor) { ///
   assert(img != NULL);
-  // ? assert (factor >= 0.0);
-  // Insert your code here!
+  for (size_t x = 0; x < img->width; x++){
+    for (size_t y = 0; y < img->height; y++){
+      uint8 colorValue = ImageGetPixel(img, x, y);
+      uint8 newColorValue = min((uint8) colorValue*factor, ImageMaxval(img));
+
+      ImageSetPixel(img, x, y, newColorValue);
+    }
+  }
 }
 
 /// Geometric transformations
@@ -425,8 +454,26 @@ void ImageBrighten(Image img, double factor) { ///
 /// On failure, returns NULL and errno/errCause are set accordingly.
 Image ImageRotate(Image img) { ///
   assert(img != NULL);
-  // Insert your code here!
-  return NULL;
+  Image rotatedImage = ImageCreate(ImageHeight(img),
+                                   ImageWidth(img),
+                                   ImageMaxval(img));
+  // TODO: A função ImageCreate já mete o errno e o errorCause
+  //       da  maneira correta
+  if(rotatedImage == NULL){
+    return NULL;
+  }
+
+  for (size_t x = 0; x < img->width; x++){
+    for (size_t y = 0; y < img->height; y++){
+
+      uint8 pixel = ImageGetPixel(img, x, y);
+      size_t rotatedY = ImageWidth(img) - x - 1;
+      size_t rotatedX = y;
+      //printf("( %zd, %zd ) passed to ( %zd, %zd )", x, y, rotatedX, rotatedY);
+      ImageSetPixel(rotatedImage, rotatedX, rotatedY, pixel);
+    }
+  }
+  return rotatedImage;
 }
 
 /// Mirror an image = flip left-right.
@@ -438,8 +485,26 @@ Image ImageRotate(Image img) { ///
 /// On failure, returns NULL and errno/errCause are set accordingly.
 Image ImageMirror(Image img) { ///
   assert(img != NULL);
-  // Insert your code here!
-  return NULL;
+  Image mirroredImage = ImageCreate(ImageWidth(img),
+                                    ImageHeight(img),
+                                    ImageMaxval(img));
+  // TODO: A função ImageCreate já mete o errno e o errorCause
+  //       da  maneira correta
+  if(mirroredImage == NULL){
+    return NULL;
+  }
+
+  for (size_t y = 0; y < img->width; y++){
+    for (size_t x = 0; x < img->height; x++){
+
+      uint8 pixel = ImageGetPixel(img, x, y);
+
+      size_t mirroredX = ImageWidth(img) - x - 1;
+      ImageSetPixel(mirroredImage, mirroredX, y, pixel);
+    }
+  }
+
+  return mirroredImage;
 }
 
 /// Crop a rectangular subimage from img.
@@ -457,7 +522,7 @@ Image ImageMirror(Image img) { ///
 Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert(img != NULL);
   assert(ImageValidRect(img, x, y, w, h));
-  // Insert your code here!
+
   return NULL;
 }
 
