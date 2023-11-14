@@ -171,7 +171,27 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
   assert (width >= 0);
   assert (height >= 0);
   assert (0 < maxval && maxval <= PixMax);
-  // Insert your code here!
+  Image img = (Image) calloc(1, sizeof(Image));
+  
+  if (img == NULL){
+      errno = ENOMEM;
+      errCause = "Error allocating memory for Image";
+      return NULL;
+  }
+
+  int size = width*height;
+  img->pixel = (uint8*) calloc(size, sizeof(uint8));
+  if (img->pixel == NULL){
+      errno = ENOMEM;
+      errCause = "Error allocating memory for pixel array";
+      free(img);
+      return NULL;
+  }
+
+  img->width = width;
+  img->height = height;
+  img->maxval = maxval;
+  return img;
 }
 
 /// Destroy the image pointed to by (*imgp).
@@ -181,7 +201,14 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
 /// Should never fail, and should preserve global errno/errCause.
 void ImageDestroy(Image* imgp) { ///
   assert (imgp != NULL);
-  // Insert your code here!
+  if (*imgp == NULL){
+      return;
+  }
+  free((*imgp)->pixel);
+  free(*imgp);
+  *imgp = NULL;
+  imgp = NULL;
+  return;
 }
 
 
@@ -392,7 +419,7 @@ void ImageBrighten(Image img, double factor) { ///
 
 /// Rotate an image.
 /// Returns a rotated version of the image.
-/// The rotation is 90 degrees clockwise.
+/// The rotation is 90 degrees anti-clockwise.
 /// Ensures: The original img is not modified.
 /// 
 /// On success, a new image is returned.
