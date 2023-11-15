@@ -25,6 +25,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "instrumentation.h"
+#include <math.h>
+
+uint8 min(uint8 a, uint8 b) {return ( a < b ? a : b);} 
 
 #define max(a, b) ( a > b ? a : b)
 #define min(a, b) ( a < b ? a : b)
@@ -323,6 +326,7 @@ int ImageMaxval(Image img) { ///
 /// *max is set to the maximum.
 void ImageStats(Image img, uint8 *min, uint8 *max) { ///
   assert(img != NULL);
+  
   for (int x = 0; x < img->width; x++){
     for (int y = 0; y < img->height; y++){
       uint8 pixelValue = ImageGetPixel(img, x, y);
@@ -344,6 +348,7 @@ int ImageValidPos(Image img, int x, int y) { ///
 /// Check if rectangular area (x,y,w,h) is completely inside img.
 int ImageValidRect(Image img, int x, int y, int w, int h) { ///
   assert(img != NULL);
+
   return ImageValidPos(img, x, y) && ImageValidPos(img, x+w, y+h);
 }
 
@@ -392,9 +397,11 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 /// resulting in a "photographic negative" effect.
 void ImageNegative(Image img) { ///
   assert(img != NULL);
+
   for (int x = 0; x < img->width; x++){
     for (int y = 0; y < img->height; y++){
       uint8 negative_value =  img->maxval - ImageGetPixel(img, x, y);
+      
       ImageSetPixel(img, x, y, negative_value);
     }
   }
@@ -423,10 +430,12 @@ void ImageThreshold(Image img, uint8 thr) { ///
 /// darken the image if factor<1.0.
 void ImageBrighten(Image img, double factor) { ///
   assert(img != NULL);
+  
   for (int x = 0; x < img->width; x++){
     for (int y = 0; y < img->height; y++){
       uint8 colorValue = ImageGetPixel(img, x, y);
       uint8 newColorValue = min((uint8) (colorValue*factor +0.5), img->maxval);
+      
       ImageSetPixel(img, x, y, newColorValue);
     }
   }
@@ -455,6 +464,7 @@ void ImageBrighten(Image img, double factor) { ///
 /// On failure, returns NULL and errno/errCause are set accordingly.
 Image ImageRotate(Image img) { ///
   assert(img != NULL);
+
   Image rotatedImage = ImageCreate(img->height,
                                    img->width,
                                    img->maxval);
@@ -486,6 +496,7 @@ Image ImageRotate(Image img) { ///
 /// On failure, returns NULL and errno/errCause are set accordingly.
 Image ImageMirror(Image img) { ///
   assert(img != NULL);
+
   Image mirroredImage = ImageCreate(img->height,
                                     img->width,
                                     img->maxval);
@@ -495,12 +506,14 @@ Image ImageMirror(Image img) { ///
     return NULL;
   }
 
+
   for (int y = 0; y < img->width; y++){
     for (int x = 0; x < img->height; x++){
 
       uint8 pixel = ImageGetPixel(img, x, y);
 
       int mirroredX = img->width - x - 1;
+      
       ImageSetPixel(mirroredImage, mirroredX, y, pixel);
     }
   }
@@ -523,6 +536,7 @@ Image ImageMirror(Image img) { ///
 Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert(img != NULL);
   assert(ImageValidRect(img, x, y, w, h));
+
   if (!ImageValidRect(img, x, y, w, h))
     return NULL;
 
@@ -536,6 +550,7 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   }
 
   return cropped;
+
 }
 
 /// Operations on two images
@@ -558,6 +573,7 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
       ImageSetPixel(img1, x+i, y+j, pixel);
     }
   }
+
 }
 
 /// Blend an image into a larger image.
@@ -570,7 +586,7 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert(img1 != NULL);
   assert(img2 != NULL);
   assert(ImageValidRect(img1, x, y, img2->width, img2->height));
-  
+
   if (!ImageValidRect(img1, x, y, img2->width, img2->height))
     return;
 
@@ -593,6 +609,7 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
   assert(img2 != NULL);
   assert(ImageValidPos(img1, x, y));
   // Insert your code here!
+
   int maxwidth = max(img1->width, x+img2->width); 
   int maxheigth = max(img1->height, y+img2->height); 
 
@@ -602,6 +619,7 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
         return 0;
   
   return 1;
+
 }
 
 /// Locate a subimage inside another image.
