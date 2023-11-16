@@ -57,5 +57,4 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-image8bit.c
-.vscode/settings.json
+.vscode/tasks.json
