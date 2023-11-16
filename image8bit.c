@@ -697,6 +697,6 @@ void ImageBlur(Image img, int dx, int dy) { ///
         }
     }
 
-    // Destroy the temporary image
+    // Destroy the temporary image a
     ImageDestroy(&tempImg);
 }
