@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "instrumentation.h"
-#include <math.h>
+
 
 uint8 min(uint8 a, uint8 b) {return ( a < b ? a : b);} 
 
@@ -676,8 +676,8 @@ Image ImageMirror(Image img) { ///
   Image mirroredImage = ImageCreate(img->height,
                                     img->width,
                                     img->maxval);
-  // TODO: A função ImageCreate já mete o errno e o errorCause
-  //       da  maneira correta
+  // A função ImageCreate já mete o errno e o errorCause
+  // da  maneira correta
   if(mirroredImage == NULL){
     return NULL;
   }
@@ -685,9 +685,7 @@ Image ImageMirror(Image img) { ///
 
   for (int y = 0; y < img->width; y++){
     for (int x = 0; x < img->height; x++){
-
       uint8 pixel = ImageGetPixel(img, x, y);
-
       int mirroredX = img->width - x - 1;
       
       ImageSetPixel(mirroredImage, mirroredX, y, pixel);
@@ -739,6 +737,8 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert(ImageValidRect(img, x, y, w, h));
 
   if (!ImageValidRect(img, x, y, w, h))
+    errCause = "img1 does not fit in img2";
+    errno = 
     return NULL;
 
   Image cropped = ImageCreate(w, h, img->maxval);
@@ -783,6 +783,8 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
   assert(ImageValidRect(img1, x, y, img2->width, img2->height));
 
   if (!ImageValidRect(img1, x, y, img2->width, img2->height))
+    errCause = "img1 does not fit in img2";
+    errno = 
     return;
 
   for (int i = 0; i < img2->width; i++){
@@ -791,21 +793,6 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
       ImageSetPixel(img1, x+i, y+j, pixel);
     }
   }
-
-  assert(img1 != NULL);
-  assert(img2 != NULL);
-  assert(ImageValidRect(img1, x, y, img2->width, img2->height));
-
-  if (!ImageValidRect(img1, x, y, img2->width, img2->height))
-    return;
-
-  for (int i = 0; i < img2->width; i++){
-    for (int j = 0; j < img2->height; j++){
-      uint8 pixel = ImageGetPixel(img2, i, j);
-      ImageSetPixel(img1, x+i, y+j, pixel);
-    }
-  }
-
 }
 
 /// Blend an image into a larger image.
@@ -820,13 +807,15 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert(ImageValidRect(img1, x, y, img2->width, img2->height));
 
   if (!ImageValidRect(img1, x, y, img2->width, img2->height))
+    errCause = "img1 does not fit in img2";
+    errno = EINVAL;
     return;
 
   for (int i = 0; i < img2->width; i++){
     for (int j = 0; j < img2->height; j++){
       uint8 pixel_img1 = ImageGetPixel(img1, x+i, y+j);
       uint8 pixel_img2 = ImageGetPixel(img2, i, j);
-      uint8 blended_pixel = (uint8) ( pixel_img1 * (1-alpha) + pixel_img2 * (alpha) +0.5);
+      uint8 blended_pixel = (uint8) ( pixel_img1 * (1-alpha) + pixel_img2 * (alpha) + 0.5);
       
       ImageSetPixel(img1, x+i, y+j, blended_pixel);
     }
@@ -856,10 +845,6 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
   assert(img1 != NULL);
   assert(img2 != NULL);
   assert(ImageValidPos(img1, x, y));
-  assert(img1 != NULL);
-  assert(img2 != NULL);
-  assert(ImageValidPos(img1, x, y));
-  // Insert your code here!
 
   int maxwidth = max(img1->width, x+img2->width); 
   int maxheigth = max(img1->height, y+img2->height); 
@@ -913,7 +898,7 @@ int ImageLocateSubImage(Image img1, int *px, int *py, Image img2) { ///
         }
         if (matchFound) {
             break;
-        }
+        }with 
     }
 
     return matchFound;
@@ -925,9 +910,7 @@ int ImageLocateSubImage(Image img1, int *px, int *py, Image img2) { ///
 /// Each pixel is substituted by the mean of the pixels in the rectangle
 /// [x-dx, x+dx] x [y-dy, y+dy].
 /// The image is changed in-place.
-void ImageBlur(Image img, int dx, int dy) { ///
-  // Insert your code here!
-}
+void ImageBlur(Image img, int dx, int dy) {
     assert(img != NULL);
 
     // Create a temporary image to store the blurred result
