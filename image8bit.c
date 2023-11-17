@@ -681,11 +681,9 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2)
 }
 
 int ImageLocateSubImage(Image img1, int *px, int *py, Image img2)
-{ ///
+{
   assert(img1 != NULL);
   assert(img2 != NULL);
-
-  int matchFound = 0;
 
   for (int x = 0; x < img1->width - img2->width; x++)
   {
@@ -696,14 +694,11 @@ int ImageLocateSubImage(Image img1, int *px, int *py, Image img2)
         // Match found
         *px = x;
         *py = y;
-        matchFound = 1;
-        goto out;
+        return 1;
       }
     }
   }
-  
-out:
-  return matchFound;
+  return 0;
 }
 
 /// Filtering
@@ -719,6 +714,10 @@ void ImageBlur(Image img, int dx, int dy)
   // Create a temporary image to store the blurred result
   Image tempImg = ImageCreate(img->width, img->height, img->maxval);
 
+  if (tempImg == NULL) { 
+    return;
+  }
+
   for (int x = 0; x < img->width; x++)
   {
     for (int y = 0; y < img->height; y++)
@@ -726,7 +725,6 @@ void ImageBlur(Image img, int dx, int dy)
       int sum = 0;
       int count = 0;
 
-      // Iterate over the pixels in the filter window
       for (int i = -dx; i <= dx; i++)
       {
         for (int j = -dy; j <= dy; j++)
@@ -734,7 +732,6 @@ void ImageBlur(Image img, int dx, int dy)
           int newX = x + i;
           int newY = y + j;
 
-          // Check if the pixel is within bounds
           if (ImageValidPos(img, newX, newY))
           {
             sum += ImageGetPixel(img, newX, newY);
@@ -743,8 +740,6 @@ void ImageBlur(Image img, int dx, int dy)
         }
       }
 
-
-      // Calculate the mean and set the pixel in the temporary image
       uint8 meanValue = (uint8) ( (double) sum / count + 0.5);
       ImageSetPixel(tempImg, x, y, meanValue);
     }
@@ -759,6 +754,5 @@ void ImageBlur(Image img, int dx, int dy)
     }
   }
 
-  // Destroy the temporary image
   ImageDestroy(&tempImg);
 }
