@@ -483,7 +483,8 @@ Image ImageRotate(Image img) {
   // TODO: A função ImageCreate já mete o errno e o errorCause
   //       da  maneira correta
 
-  if (rotatedImage == NULL)
+
+  if  (rotatedImage == NULL)
   {
     return NULL;
   }
@@ -496,7 +497,7 @@ Image ImageRotate(Image img) {
       uint8 pixel = ImageGetPixel(img, x, y);
 
       int rotatedX = y;
-      int rotatedY = -(x + 1) + img->width - x - 1;
+      int rotatedY = img->width - x - 1;
 
       ImageSetPixel(rotatedImage, rotatedX, rotatedY, pixel);
     }
