@@ -16,6 +16,7 @@
 
 // Type for pixel levels
 typedef uint8_t uint8;
+typedef uint16_t uint16;
 
 // Maximum value you can store in a pixel (maximum maxval accepted)
 extern const uint8 PixMax;
@@ -57,7 +58,6 @@ Image ImageCreate(int width, int height, uint8 maxval) ;
 /// Ensures: (*imgp)==NULL.
 /// Should never fail, and should preserve global errno/errCause.
 void ImageDestroy(Image* imgp) ;
-
 /// PGM file operations
 
 /// Load a raw PGM file.
@@ -212,5 +212,6 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) ;
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) ;
+void ImageBlurImproved(Image img, int dx, int dy) ;
 
 #endif

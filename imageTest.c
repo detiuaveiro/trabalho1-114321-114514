@@ -25,33 +25,37 @@ int main(int argc, char* argv[]) {
 
   ImageInit();
   
-  printf("# LOAD image");
-  InstrReset(); // to reset instrumentation
+  printf("# LOAD image\n");
+  InstrReset();
   Image img1 = ImageLoad(argv[1]);
+  Image img2 = ImageLoad(argv[1]);
+
   if (img1 == NULL) {
     error(2, errno, "Loading %s: %s", argv[1], ImageErrMsg());
   }
-  InstrPrint(); // to print instrumentation
+  InstrPrint();
 
-  // Try changing the behaviour of the program by commenting/uncommenting
-  // the appropriate lines.
+  printf("# Blur image\n");
+  InstrReset();
+  ImageBlur(img1, 7, 7);
+  InstrPrint();
 
-  //img2 = ImageCrop(img1, ImageWidth(img1)/4, ImageHeight(img1)/4, ImageWidth(img1)/2, ImageHeight(img1)/2);
-  Image img2 = ImageRotate(img1);
-  if (img2 == NULL) {
-    error(2, errno, "Rotating img2: %s", ImageErrMsg());
-  }
 
-  //ImageNegative(img2);
-  //ImageThreshold(img2, 100);
-  ImageBrighten(img2, 1.3);
+  printf("# Improved Blur image\n");
+  InstrReset();
+  ImageBlurImproved(img2, 7, 7);
+  InstrPrint();
 
-  if (ImageSave(img2, argv[2]) == 0) {
+  // if (img2 == NULL) {
+  //   error(2, errno, "Rotating img2: %s", ImageErrMsg());
+  // }
+
+  if (ImageSave(img1, argv[2]) == 0) {
     error(2, errno, "%s: %s", argv[2], ImageErrMsg());
   }
 
+
   ImageDestroy(&img1);
-  ImageDestroy(&img2);
   return 0;
 }
 
