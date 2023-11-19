@@ -446,8 +446,8 @@ void ImageThreshold(Image img, uint8 thr)
   {
     for (int y = 0; y < img->height; y++)
     {
-      uint8 colorValue = ImageGetPixel(img, x, y);
-      if (colorValue < thr)
+      uint8 jorValue = ImageGetPixel(img, x, y);
+      if (jorValue < thr)
         ImageSetPixel(img, x, y, 0);
       else
         ImageSetPixel(img, x, y, img->maxval);
@@ -467,10 +467,10 @@ void ImageBrighten(Image img, double factor)
   {
     for (int y = 0; y < img->height; y++)
     {
-      uint8 colorValue = ImageGetPixel(img, x, y);
-      uint8 newColorValue = min((uint8)(colorValue * factor + 0.5), img->maxval);
+      uint8 jorValue = ImageGetPixel(img, x, y);
+      uint8 newjorValue = min((uint8)(jorValue * factor + 0.5), img->maxval);
 
-      ImageSetPixel(img, x, y, newColorValue);
+      ImageSetPixel(img, x, y, newjorValue);
     }
   }
 }
@@ -714,7 +714,7 @@ void ImageBlur(Image img, int dx, int dy)
   // Create a temporary image to store the blurred result
   Image tempImg = ImageCreate(img->width, img->height, img->maxval);
 
-  if (tempImg == NULL) { 
+  if (tempImg == NULL) {
     return;
   }
 
@@ -755,4 +755,65 @@ void ImageBlur(Image img, int dx, int dy)
   }
 
   ImageDestroy(&tempImg);
+}
+
+
+void ImageBlurImproved(Image img, int dx, int dy){
+  int height = img->height;
+  int width = img->width;
+  uint32_t* level_sum = (uint32_t *) malloc(width*height*sizeof(uint32_t));
+
+  // level_sum[0] = ImageGetPixel(img, 0, 0);
+
+  // Somar todos os niveis de cada pixel à esquerda do pixel (x, y)
+  for (int y = 0; y < height; y++){
+    for (int x = 1; x < width; x++){
+      level_sum[y*width + x] = ((uint32_t) ImageGetPixel(img, x, y)) + level_sum[y*width + x-1];
+      PIXMEM += 2;
+    }
+  }
+    
+  // Somar à soma de todos os pixeis à esquerda,a soma do valor a cima
+  // Tal que em cada posiçao de level_sum teremos a soma de 
+  // todos os pixeis desde (0,0) até ao atual.
+  // assim subtraindo level_sum(x-dx,y-dy) a level_sum(x+dx, y+dy)
+  // Teremos a soma dos niveis no quadrado em questão, aprimorando
+  // assim a eficiencia, pois teremos os valores já calculados, inves de calcular s
+  for (int x = 0; x < width; x++) {
+    for (int y = 1; y < height; y++) {
+      level_sum[y*width + x] += level_sum[(y-1)*width + x];
+      PIXMEM += 2;
+    }
+  }
+
+    // Blur
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+
+      // Coordenadas do retangulo de blur
+      int x_min = max(x - dx, 0);
+      int x_max = min(x + dx, width - 1);
+      int y_min = max(y - dy, 0);
+      int y_max = min(y + dy, height - 1);
+
+      // Numero de pixels no retangulo
+      int count = (x_max - x_min + 1) * (y_max - y_min + 1);
+
+      // a -> box (0, 0) até (x-dx, y-dy)
+      uint32_t a = (y_min < 1 || x_min < 1 ) ? 0 : level_sum[(y_min -1)*width + x_min -1];
+      // d -> box (0, 0) até (x+dx ,y-dy)
+      uint32_t b = y_min < 1 ? 0 : level_sum[(y_min - 1) * width + x_max];
+      // c -> box (0, 0) até (x-dx, y+dy)
+      uint32_t c = x_min < 1 ? 0 : level_sum[y_max*width + x_min-1];
+      // d -> box (0, 0) até (x+dx, y+dy)
+      uint32_t d = level_sum[y_max*width + x_max];
+      PIXMEM += 4;
+
+      double boxSum = (double) d - b - c + a;
+      uint8 mean = (uint8) ( boxSum / count + 0.5);
+      ImageSetPixel(img, x, y, mean);
+    }
+  }
+
+  free(level_sum);
 }

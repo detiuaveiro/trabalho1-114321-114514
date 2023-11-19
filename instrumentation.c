@@ -117,9 +117,10 @@ void InstrPrint(void) { ///
   double caltime = time / InstrCTU;
 
   printf("#%14.15s\t%15.15s", "time", "caltime");
-  for (int i = 0; i < NUMCOUNTERS; i++)
+  for (int i = 0; i < NUMCOUNTERS; i++){
     if (InstrName[i] != NULL)
       printf("\t%15.15s", InstrName[i]);
+  }
   puts("");
   printf("%15.6f\t%15.6f", time, caltime);
   for (int i = 0; i < NUMCOUNTERS; i++)
