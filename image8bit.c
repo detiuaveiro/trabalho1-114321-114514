@@ -54,9 +54,8 @@ struct image
 {
   int width;
   int height;
-  int size;
   int maxval;   // maximum gray value (pixels with maxval are pure WHITE)
-  uint8 *pixel; // pixel data (a raster scan)
+  uint8* pixel; // pixel data (a raster scan)
 };
 
 // This module follows "design-by-contract" principles.
@@ -184,7 +183,6 @@ Image ImageCreate(int width, int height, uint8 maxval)
   }
 
   int size = width * height;
-  img->size = size;
   img->pixel = (uint8 *)calloc(size, sizeof(uint8));
 
   if (img->pixel == NULL)
@@ -666,9 +664,9 @@ int ImageLocateSubImage(Image img1, int *px, int *py, Image img2)
   assert(img2 != NULL);
 
 
-  for (int x = 0; x < img1->width - img2->width; x++)
+  for (int x = 0; x <= img1->width - img2->width ; x++)
   {
-    for (int y = 0; y < img1->height - img2->height; y++)
+    for (int y = 0; y <= img1->height - img2->height; y++)
     {
       if (ImageMatchSubImage(img1, x, y, img2))
       {
@@ -706,16 +704,13 @@ void ImageBlur(Image img, int dx, int dy)
       int sum = 0;
       int count = 0;
 
-      for (int i = -dx; i <= dx; i++)
+      for (int i = x-dx; i <= x+dx; i++)
       {
-        for (int j = -dy; j <= dy; j++)
+        for (int j = y-dy; j <= y+dy; j++)
         {
-          int newX = x + i;
-          int newY = y + j;
-
-          if (ImageValidPos(img, newX, newY))
+          if (ImageValidPos(img, i, j))
           {
-            sum += ImageGetPixel(img, newX, newY);
+            sum += ImageGetPixel(img, i, j);
             count++;
           }
         }
@@ -744,7 +739,15 @@ void ImageBlurImproved(Image img, int dx, int dy){
   int width = img->width;
   uint32_t* level_sum = (uint32_t *) malloc(width*height*sizeof(uint32_t));
 
-  // level_sum[0] = ImageGetPixel(img, 0, 0);
+  if (level_sum == NULL){
+    errno = ENOMEM;
+    errCause = "Failure allocating auxiliar array for blur";
+  }
+
+  for (int y = 0; y<height; y++){
+    level_sum[y*width] = ImageGetPixel(img, 0, y);
+    PIXMEM++;
+  }
 
   // Somar todos os niveis de cada pixel à esquerda do pixel (x, y)
   for (int y = 0; y < height; y++){
@@ -763,7 +766,7 @@ void ImageBlurImproved(Image img, int dx, int dy){
   for (int x = 0; x < width; x++) {
     for (int y = 1; y < height; y++) {
       level_sum[y*width + x] += level_sum[(y-1)*width + x];
-      PIXMEM += 2;
+      PIXMEM += 3;
     }
   }
 

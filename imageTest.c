@@ -27,8 +27,10 @@ int main(int argc, char* argv[]) {
   
   printf("# LOAD image\n");
   InstrReset();
+  // Image imgOriginal = ImageLoad(argv[1]);
   Image img1 = ImageLoad(argv[1]);
   Image img2 = ImageLoad(argv[1]);
+
 
   if (img1 == NULL) {
     error(2, errno, "Loading %s: %s", argv[1], ImageErrMsg());
@@ -37,20 +39,26 @@ int main(int argc, char* argv[]) {
 
   printf("# Blur image\n");
   InstrReset();
-  ImageBlur(img1, 7, 7);
+  ImageBlur(img1, 10, 10);
   InstrPrint();
 
 
   printf("# Improved Blur image\n");
   InstrReset();
-  ImageBlurImproved(img2, 7, 7);
+  ImageBlurImproved(img2, 10, 10);
   InstrPrint();
+
+  printf("Compare BLUR with BLURIMPROVED:\n");
+  if (ImageMatchSubImage(img2, 0, 0, img1))
+    printf("MATCH!\n");
+  else
+    printf("DONT MATCH\n");
 
   // if (img2 == NULL) {
   //   error(2, errno, "Rotating img2: %s", ImageErrMsg());
   // }
 
-  if (ImageSave(img1, argv[2]) == 0) {
+  if (ImageSave(img1, argv[2]) == 0 && ImageSave(img2, argv[3]) == 0) {
     error(2, errno, "%s: %s", argv[2], ImageErrMsg());
   }
 
