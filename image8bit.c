@@ -148,11 +148,12 @@ void ImageInit(void)
 { ///
   InstrCalibrate();
   InstrName[0] = "pixmem"; // InstrCount[0] will count pixel array acesses
-  // Name other counters here...
+  InstrName[1] = "Compares";
 }
 
 // Macros to simplify accessing instrumentation counters:
 #define PIXMEM InstrCount[0]
+#define COMPARE InstrCount[1]
 // Add more macros here...
 
 // TIP: Search for PIXMEM or InstrCount to see where it is incremented!
@@ -172,6 +173,11 @@ Image ImageCreate(int width, int height, uint8 maxval)
   assert(width >= 0);
   assert(height >= 0);
   assert(0 < maxval && maxval <= PixMax);
+  if (maxval > 255){
+    errno = EINVAL;
+    errCause="Maximum value must be 255 at most!";
+    return NULL;
+  }
 
   Image img = calloc(1, sizeof(struct image));
 
@@ -182,15 +188,13 @@ Image ImageCreate(int width, int height, uint8 maxval)
     return NULL;
   }
 
-  int size = width * height;
-  img->pixel = (uint8 *)calloc(size, sizeof(uint8));
+  img->pixel = (uint8 *)calloc(width*height, sizeof(uint8));
 
   if (img->pixel == NULL)
   {
     errno = ENOMEM;
     errCause = "Error allocating memory for pixel array";
     free(img);
-    img = NULL;
     return NULL;
   }
 
@@ -209,8 +213,11 @@ Image ImageCreate(int width, int height, uint8 maxval)
 void ImageDestroy(Image *imgp) {
   assert(imgp != NULL);
   if (*imgp == NULL) {
+    errno = EINVAL;
+    errCause = "Image pointer is NULL";
     return;
   }
+
   free((*imgp)->pixel);
   free(*imgp);
   *imgp = NULL;
@@ -331,13 +338,14 @@ int ImageMaxval(Image img) {
 /// *min is set to the minimum gray level in the image,
 /// *max is set to the maximum.
 void ImageStats(Image img, uint8 *min, uint8 *max)
-{ ///
+{
   assert(img != NULL);
   for (int x = 0; x < img->width; x++)
   {
     for (int y = 0; y < img->height; y++)
     {
       uint8 pixelValue = ImageGetPixel(img, x, y);
+
       if (pixelValue > *max)
         *max = pixelValue;
       else if (pixelValue < *min)
@@ -349,14 +357,13 @@ void ImageStats(Image img, uint8 *min, uint8 *max)
 /// Check if pixel position (x,y) is inside img.
 int ImageValidPos(Image img, int x, int y) {
   assert(img != NULL);
-  return (0 <= x && x < img->width) && (0 <= y && y < img->height);
+  return (0 <= x && x < img->width ) && (0 <= y && y < img->height);
 }
 
 /// Check if rectangular area (x,y,w,h) is completely inside img.
 int ImageValidRect(Image img, int x, int y, int w, int h) {
   assert(img != NULL);
-
-  return ImageValidPos(img, x, y) && ImageValidPos(img, x+w, y+h);
+  return ImageValidPos(img, x, y) && ImageValidPos(img, x+w-1, y+h-1);
 }
 
 /// Pixel get & set operations
@@ -371,8 +378,7 @@ int ImageValidRect(Image img, int x, int y, int w, int h) {
 // The returned index must satisfy (0 <= index < img->width*img->height)
 static inline int G(Image img, int x, int y)
 {
-  int index;
-  index = y * img->width + x;
+  int index = y * img->width + x;
   assert(0 <= index && index < img->width * img->height);
   return index;
 }
@@ -406,7 +412,6 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) {
 void ImageNegative(Image img)
 { ///
   assert(img != NULL);
-
   for (int x = 0; x < img->width; x++){
     for (int y = 0; y < img->height; y++){
       uint8 negative_value =  img->maxval - ImageGetPixel(img, x, y);
@@ -419,13 +424,13 @@ void ImageNegative(Image img)
 /// Transform all pixels with level<thr to black (0) and
 /// all pixels with level>=thr to white (maxval).
 void ImageThreshold(Image img, uint8 thr)
-{ ///
+{
   assert(img != NULL);
   
   for (int x = 0; x < img->width; x++){
     for (int y = 0; y < img->height; y++){
-      uint8 colorValue = ImageGetPixel(img, x, y);
-      if ( colorValue < thr )
+      uint8 levelValue = ImageGetPixel(img, x, y);
+      if ( levelValue < thr )
         ImageSetPixel(img, x, y, 0);
       else
         ImageSetPixel(img, x, y, img->maxval);
@@ -437,16 +442,15 @@ void ImageThreshold(Image img, uint8 thr)
 /// Multiply each pixel level by a factor, but saturate at maxval.
 /// This will brighten the image if factor>1.0 and
 /// darken the image if factor<1.0.
-
 void ImageBrighten(Image img, double factor) {
   assert(img != NULL);
   
   for (int x = 0; x < img->width; x++){
     for (int y = 0; y < img->height; y++){
-      uint8 colorValue = ImageGetPixel(img, x, y);
-      uint8 newColorValue = min((uint8) (colorValue*factor +0.5), img->maxval);
+      uint8 levelValue = ImageGetPixel(img, x, y);
+      uint8 newLevelValue = min((uint8) (levelValue*factor + 0.5), img->maxval);
       
-      ImageSetPixel(img, x, y, newColorValue);
+      ImageSetPixel(img, x, y, newLevelValue);
     }
   }
 }
@@ -478,12 +482,10 @@ Image ImageRotate(Image img) {
   Image rotatedImage = ImageCreate(img->height,
                                    img->width,
                                    img->maxval);
-  // TODO: A função ImageCreate já mete o errno e o errorCause
-  //       da  maneira correta
-
 
   if  (rotatedImage == NULL)
   {
+    errCause = "Failure Allocating space for Rotated Image";
     return NULL;
   }
 
@@ -491,9 +493,9 @@ Image ImageRotate(Image img) {
   {
     for (int y = 0; y < img->height; y++)
     {
-      
       uint8 pixel = ImageGetPixel(img, x, y);
 
+      // Rotação das coordenadas X e Y
       int rotatedX = y;
       int rotatedY = img->width - x - 1;
 
@@ -511,16 +513,16 @@ Image ImageRotate(Image img) {
 /// (The caller is responsible for destroying the returned image!)
 /// On failure, returns NULL and errno/errCause are set accordingly.
 Image ImageMirror(Image img)
-{ ///
+{
   assert(img != NULL);
 
   Image mirroredImage = ImageCreate(img->height,
                                     img->width,
                                     img->maxval);
-  // A função ImageCreate já mete o errno e o errorCause
-  // da  maneira correta
+
   if (mirroredImage == NULL)
   {
+    errCause = "Failure allocating space for mirrored Image";
     return NULL;
   }
 
@@ -529,6 +531,8 @@ Image ImageMirror(Image img)
     for (int x = 0; x < img->height; x++)
     {
       uint8 pixel = ImageGetPixel(img, x, y);
+      
+      // Espelhar a coordenada X
       int mirroredX = img->width - x - 1;
       
       ImageSetPixel(mirroredImage, mirroredX, y, pixel);
@@ -557,12 +561,17 @@ Image ImageCrop(Image img, int x, int y, int w, int h)
 
   if (!ImageValidRect(img, x, y, w, h))
   {
-    errCause = "img1 does not fit in img2";
+    errCause = "Crop positions are invalid";
     errno = EINVAL;
     return NULL;
   }
 
   Image cropped = ImageCreate(w, h, img->maxval);
+
+  if (cropped == NULL){
+    errCause = "Failure allocating space for cropped image";
+    return NULL;
+  }
 
   for (int i = 0; i < w; i++)
   {
@@ -590,11 +599,12 @@ void ImagePaste(Image img1, int x, int y, Image img2)
 
   if (!ImageValidRect(img1, x, y, img2->width, img2->height))
   {
-    errCause = "img1 does not fit in img2";
+    errCause = "img2 does not fit in img1";
     errno = EINVAL;
     return;
   }
 
+  
   for (int i = 0; i < img2->width; i++)
   {
     for (int j = 0; j < img2->height; j++)
@@ -630,6 +640,7 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha)
     {
       uint8 pixel_img1 = ImageGetPixel(img1, x + i, y + j);
       uint8 pixel_img2 = ImageGetPixel(img2, i, j);
+
       uint8 blended_pixel = (uint8)(pixel_img1 * (1 - alpha) + pixel_img2 * (alpha) + 0.5);
 
       ImageSetPixel(img1, x + i, y + j, blended_pixel);
@@ -646,14 +657,15 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2)
   assert(img2 != NULL);
   assert(ImageValidPos(img1, x, y));
 
-  int maxwidth = min(img1->width - x, img2->width);
-  int maxheigth = min(img1->height - y, img2->height);
+  if ( !ImageValidRect(img1, x, y, img2->width, img2->height) )
+    return 0;
 
-  for (int i = 0; i < maxwidth; i++){
-    for (int j = 0; j < maxheigth; j++){
+  for (int i = 0; i < img2->width; i++){
+    for (int j = 0; j < img2->height; j++){
+      // COMPARE++;
       if (ImageGetPixel(img1, x + i, y + j) != ImageGetPixel(img2, i, j))
         return 0;
-    }
+      }
   }
   return 1;
 }
@@ -663,14 +675,15 @@ int ImageLocateSubImage(Image img1, int *px, int *py, Image img2)
   assert(img1 != NULL);
   assert(img2 != NULL);
 
-
+  // Se a img2 for maior que img1, nao entra no ciclo
+  // Se a img2 for do mesmo tamanho que img1
+  // verifica se são a mesma imagem
   for (int x = 0; x <= img1->width - img2->width ; x++)
   {
-    for (int y = 0; y <= img1->height - img2->height; y++)
+    for (int y = 0; y <= img1->height - img2->width ; y++)
     {
       if (ImageMatchSubImage(img1, x, y, img2))
       {
-        // Match found
         *px = x;
         *py = y;
         return 1;
@@ -690,10 +703,11 @@ void ImageBlur(Image img, int dx, int dy)
 {
   assert(img != NULL);
 
-  // Create a temporary image to store the blurred result
+  // Criar imagem auxiliar para guardar os resultados do filtro
   Image tempImg = ImageCreate(img->width, img->height, img->maxval);
 
   if (tempImg == NULL) {
+    errCause = "Failure allocating space for auxiliar image";
     return;
   }
 
@@ -721,7 +735,7 @@ void ImageBlur(Image img, int dx, int dy)
     }
   }
 
-  // Copy the values from the temporary image back to the original image
+  // Copiar os valores da imagem auxiliar para a imagem original
   for (int x = 0; x < img->width; x++)
   {
     for (int y = 0; y < img->height; y++)
@@ -729,8 +743,6 @@ void ImageBlur(Image img, int dx, int dy)
       ImageSetPixel(img, x, y, ImageGetPixel(tempImg, x, y));
     }
   }
-
-  ImageDestroy(&tempImg);
 }
 
 
@@ -745,15 +757,15 @@ void ImageBlurImproved(Image img, int dx, int dy){
   }
 
   for (int y = 0; y<height; y++){
-    level_sum[y*width] = ImageGetPixel(img, 0, y);
-    PIXMEM++;
+    level_sum[y*width + 0] = ImageGetPixel(img, 0, y);
+    // PIXMEM++;
   }
 
   // Somar todos os niveis de cada pixel à esquerda do pixel (x, y)
   for (int y = 0; y < height; y++){
     for (int x = 1; x < width; x++){
-      level_sum[y*width + x] = ((uint32_t) ImageGetPixel(img, x, y)) + level_sum[y*width + x-1];
-      PIXMEM += 2;
+      level_sum[y*width + x] = ((uint64_t) ImageGetPixel(img, x, y)) + level_sum[y*width + x-1];
+      // PIXMEM += 2;
     }
   }
     
@@ -766,7 +778,7 @@ void ImageBlurImproved(Image img, int dx, int dy){
   for (int x = 0; x < width; x++) {
     for (int y = 1; y < height; y++) {
       level_sum[y*width + x] += level_sum[(y-1)*width + x];
-      PIXMEM += 3;
+      // PIXMEM += 3;
     }
   }
 
@@ -783,14 +795,14 @@ void ImageBlurImproved(Image img, int dx, int dy){
       // Numero de pixels no retangulo
       int count = (x_max - x_min + 1) * (y_max - y_min + 1);
 
-      // a -> box (0, 0) até (x-dx, y-dy)
-      uint32_t a = (y_min < 1 || x_min < 1 ) ? 0 : level_sum[(y_min -1)*width + x_min -1];
-      // d -> box (0, 0) até (x+dx ,y-dy)
-      uint32_t b = y_min < 1 ? 0 : level_sum[(y_min - 1) * width + x_max];
-      // c -> box (0, 0) até (x-dx, y+dy)
-      uint32_t c = x_min < 1 ? 0 : level_sum[y_max*width + x_min-1];
+      // a -> box (0, 0) até (x-dx-1, y-dy-1)
+      uint64_t a = (y_min < 1 || x_min < 1 ) ? 0 : level_sum[(y_min -1)*width + x_min -1];
+      // d -> box (0, 0) até (x+dx ,y-dy-1)
+      uint64_t b = y_min < 1 ? 0 : level_sum[(y_min - 1) * width + x_max];
+      // c -> box (0, 0) até (x-dx-1, y+dy)
+      uint64_t c = x_min < 1 ? 0 : level_sum[y_max*width + x_min-1];
       // d -> box (0, 0) até (x+dx, y+dy)
-      uint32_t d = level_sum[y_max*width + x_max];
+      uint64_t d = level_sum[y_max*width + x_max];
       PIXMEM += 4;
 
       double boxSum = (double) d - b - c + a;

@@ -24,46 +24,49 @@ int main(int argc, char* argv[]) {
   }
 
   ImageInit();
-  
-  printf("# LOAD image\n");
-  InstrReset();
-  // Image imgOriginal = ImageLoad(argv[1]);
   Image img1 = ImageLoad(argv[1]);
-  Image img2 = ImageLoad(argv[1]);
-
 
   if (img1 == NULL) {
     error(2, errno, "Loading %s: %s", argv[1], ImageErrMsg());
   }
-  InstrPrint();
 
-  printf("# Blur image\n");
+  int bestH1 = 50;
+  int bestW1 = 50;
+  printf("# Image Locate Melhor caso (Img2 = %dx%d) \n", bestH1, bestW1);
+  Image img2 = ImageCrop(img1, 0, 0, bestH1, bestW1);
+  int px = 0;
+  int py = 0;
+
   InstrReset();
-  ImageBlur(img1, 10, 10);
+  ImageLocateSubImage(img1,&px, &py, img2);
   InstrPrint();
 
+  int h1 = 1000;
+  int w1 = 1000;
+  int h2 = 50;
+  int w2 = 50;
+  Image black = ImageCreate(h1, w1, 255);
+  Image white = ImageCreate(h2, w2, 255);
+  ImageNegative(white);
+  ImagePaste(black, 950, 950, white);
 
-  printf("# Improved Blur image\n");
+  printf("# Image Locate Pior caso (subimage = %dx%d) \n", w1, w2);
+
   InstrReset();
-  ImageBlurImproved(img2, 10, 10);
+  ImageLocateSubImage(black,&px, &py, white);
   InstrPrint();
 
-  printf("Compare BLUR with BLURIMPROVED:\n");
-  if (ImageMatchSubImage(img2, 0, 0, img1))
-    printf("MATCH!\n");
-  else
-    printf("DONT MATCH\n");
+  printf("\n\nCalculado: %d\n", 2*((w1-w2+1)*(h1-h2+1) + w2*h2));
 
-  // if (img2 == NULL) {
-  //   error(2, errno, "Rotating img2: %s", ImageErrMsg());
-  // }
 
-  if (ImageSave(img1, argv[2]) == 0 && ImageSave(img2, argv[3]) == 0) {
+  if (ImageSave(black, argv[2]) == 0 ) {
     error(2, errno, "%s: %s", argv[2], ImageErrMsg());
   }
 
 
   ImageDestroy(&img1);
+  ImageDestroy(&img2);
+
   return 0;
 }
 
