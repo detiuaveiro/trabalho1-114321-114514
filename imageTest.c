@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
   ImageNegative(white);
   ImagePaste(black, 950, 950, white);
 
-  printf("# Image Locate Pior caso (subimage = %dx%d) \n", w1, w2);
+  printf("# Image Locate Pior caso (subimage = %dx%d) \n", h2, w2);
 
   InstrReset();
   ImageLocateSubImage(black,&px, &py, white);
