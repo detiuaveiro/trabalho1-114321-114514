@@ -10,11 +10,11 @@
 /// 2013, 2023
 
 // Student authors (fill in below):
-// NMec:  Name:
+// NMec: 114514 Name: João Paulo Mendes Gaspar
+// NMec: 114321 Name: José Pedro Ferreira Marques
 //
 //
-//
-// Date:
+// Date: 25-11-2023
 //
 
 #include "image8bit.h"
